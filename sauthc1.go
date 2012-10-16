@@ -14,9 +14,7 @@ import (
 	"math"
 	"math/big"
 	"net/http"
-	"net/url"
 	"strconv"
-	"strings"
 	"time"
 	// "encoding/base64"
 	"github.com/jmcvetta/guid"
@@ -108,25 +106,9 @@ func (s *Sauthc1Signer) Sign(req *http.Request, key ApiKey) error {
 	will be necessary.
 	*/
 	req.Header.Add(s.HostHeader, host)
+	req.Header.Add(s.StorpathDateHeader, timeStamp)
+	method := req.Method
+	
 	return nil // Success!
 }
 
-
-// defaultPort checks whether a URL contains the default port for its scheme: 80
-// for http, 443 for https, or no port specified.
-func defaultPort(u *url.URL) bool {
-	scheme := u.Scheme
-	parts := strings.Split(u.Host, ":")
-	var port string
-	switch len(parts) {
-		case 1:
-			port = ""
-		case 2:
-			port = parts[1]
-		default:
-			// Would it be better to return an error here?
-			return false
-	}
-	result := port == "" || port == "0" || (port == "80" && scheme == "http") || (port == "443" && scheme == "https")
-	return result // Success!
-}
