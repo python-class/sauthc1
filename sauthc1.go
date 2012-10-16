@@ -1,12 +1,23 @@
+// Copyright (c) 2012 Jason McVetta.  This is Free Software, released under the 
+// terms of the GPL v3.  See http://www.gnu.org/copyleft/gpl.html for details.
+
+// Package sauthc1 implements the SAuthc1 Stormpath cryptographic digest
+// authentication algorithm.
 package sauthc1
 
+// This code was inspired by the official Stormpath Ruby and Java algos:
+//     https://github.com/stormpath/stormpath-sdk-ruby/blob/master/lib/stormpath-sdk/http/authc/sauthc1_signer.rb
+//     https://github.com/stormpath/stormpath-sdk-java/blob/master/impl/src/main/java/com/stormpath/sdk/impl/http/authc/Sauthc1Signer.java
+
 import (
-	"net/http"
-	"time"
-	"strconv"
+	"crypto/rand"
 	"math"
 	"math/big"
-	"crypto/rand"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
 	// "encoding/base64"
 	"github.com/jmcvetta/guid"
 	// "github.com/jmcvetta/randutil"
@@ -28,7 +39,7 @@ type Sauthc1Signer struct {
 	DateFormat           string
 	TimestampFormat      string
 	Newline              string
-	GuidGenerator guid.Generator
+	GuidGenerator        guid.Generator
 }
 
 // DefaultSigner returns a new Sauthc1Signer object initialized with the default
@@ -48,7 +59,7 @@ func DefaultSigner() Sauthc1Signer {
 		DateFormat:           "%Y%m%d",
 		TimestampFormat:      "%Y%m%dT%H%M%SZ",
 		Newline:              "\n",
-		GuidGenerator: guid.SimpleGenerator(),
+		GuidGenerator:        guid.SimpleGenerator(),
 	}
 	return s
 }
@@ -82,5 +93,40 @@ func (s *Sauthc1Signer) Sign(req *http.Request, key ApiKey) error {
 	}
 	url := req.URL
 	host := url.Host
+	/*
+	In the Ruby version of this algorithm, we see the following code to check
+	default port and append append the port if unspecified.
+	
+          host_header = uri.host
+          if !RequestUtils.default_port?(uri)
+
+            host_header << ":" << uri.port.to_s
+          end
+          
+	It appears this is required because Ruby's URI module splits host and port into
+	seperate variables.  Go keeps them as a single string, so I do not this this
+	will be necessary.
+	*/
+	req.Header.Add(s.HostHeader, host)
 	return nil // Success!
+}
+
+
+// defaultPort checks whether a URL contains the default port for its scheme: 80
+// for http, 443 for https, or no port specified.
+func defaultPort(u *url.URL) bool {
+	scheme := u.Scheme
+	parts := strings.Split(u.Host, ":")
+	var port string
+	switch len(parts) {
+		case 1:
+			port = ""
+		case 2:
+			port = parts[1]
+		default:
+			// Would it be better to return an error here?
+			return false
+	}
+	result := port == "" || port == "0" || (port == "80" && scheme == "http") || (port == "443" && scheme == "https")
+	return result // Success!
 }
