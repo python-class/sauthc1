@@ -9,8 +9,26 @@ import (
 // encodeUrl encodes a URL to be signed by SAuthc1.  
 //
 // Based on https://github.com/stormpath/stormpath-sdk-ruby/blob/master/lib/stormpath-sdk/util/request_utils.rb#L35
-func encodeUrl (u *url.URL, path, canonical bool) *url.URL {
-	
+func encodeUrl (value string, path, canonical bool) string {
+	// Note that url.QueryEscape() does not work exactly like Ruby's URI.escape()
+	encoded := url.QueryEscape(value)
+	if canonical {
+		strmap := map[string]string {
+			"+": "%20",
+			"*": "%2A",
+			"%7E": "~",
+		}
+		for key, value := range strmap {
+			encoded = strings.Replace(encoded, key, value, -1)
+		}
+	}
+	if path {
+		s := "%2F"
+		if strings.Contains(encoded, s) {
+			encoded = strings.Replace(encoded, s, "/", -1)
+		}
+	}
+	return encoded	
 }
 
 

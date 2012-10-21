@@ -89,8 +89,8 @@ func (s *Sauthc1Signer) Sign(req *http.Request, key ApiKey) error {
 	if err != nil {
 		return err
 	}
-	url := req.URL
-	host := url.Host
+	u := req.URL
+	host := u.Host
 	/*
 	In the Ruby version of this algorithm, we see the following code to check
 	default port and append append the port if unspecified.
@@ -108,7 +108,21 @@ func (s *Sauthc1Signer) Sign(req *http.Request, key ApiKey) error {
 	req.Header.Add(s.HostHeader, host)
 	req.Header.Add(s.StorpathDateHeader, timeStamp)
 	method := req.Method
+	canResPath := canonicalizeResourcePath(u.Path)
 	
 	return nil // Success!
 }
+
+
+
+// canonicalizeResourcePath returns the canonical form of a URI resource path.
+func canonicalizeResourcePath(path string) string {
+	if path == "" {
+		return "/"
+	}
+	return encodeUrl(path, true, true)
+}
+
+
+
 
